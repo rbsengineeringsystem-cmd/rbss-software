@@ -3,12 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Budget Manager - Team Edition</title>
-    
-    <!-- Firebase CDN Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
+    <title>Project Budget Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -753,10 +748,7 @@
     <div class="container">
         <div class="header">
             <h1>💼 Project Budget Manager</h1>
-            <p>🌐 Team Edition - Real-time Collaboration</p>
-            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.8;" id="connectionStatus">
-                🔄 Connecting to database...
-            </p>
+            <p>Apne projects ka complete control</p>
         </div>
 
         <div class="tabs">
@@ -1011,193 +1003,11 @@
     </div>
 
     <script>
-        // ============================================
-        // FIREBASE CONFIGURATION
-        // ============================================
-        // ⚠️ IMPORTANT: Replace this with YOUR Firebase config
-        // Get it from: Firebase Console → Project Settings → Your Apps → Web App Config
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyCATqoRb6PPEL4mpejx6JA-bgsQJQWUJZM",
-            authDomain: "rbss-software-2923a.firebaseapp.com",
-            projectId: "rbss-software-2923a",
-            storageBucket: "rbss-software-2923a.firebasestorage.app",
-            messagingSenderId: "344302247525",
-            appId: "1:344302247525:web:3a4342cec93555e7de308c"
-        };
-
-        // Initialize Firebase
-        let db = null;
-        let isFirebaseReady = false;
-
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            isFirebaseReady = true;
-            updateConnectionStatus('✅ Connected - Real-time sync enabled!', 'success');
-            console.log('✅ Firebase connected successfully!');
-        } catch (error) {
-            console.error('❌ Firebase initialization error:', error);
-            updateConnectionStatus('⚠️ Offline Mode - Using local storage only', 'warning');
-            isFirebaseReady = false;
-        }
-
-        function updateConnectionStatus(message, type) {
-            const statusEl = document.getElementById('connectionStatus');
-            if (statusEl) {
-                statusEl.textContent = message;
-                statusEl.style.color = type === 'success' ? '#34C759' : type === 'warning' ? '#FF9500' : '#FF3B30';
-            }
-        }
-
-        // ============================================
-        // DATA VARIABLES
-        // ============================================
-        let projects = [];
-        let reminders = [];
+        let projects = JSON.parse(localStorage.getItem('projects')) || [];
+        let reminders = JSON.parse(localStorage.getItem('reminders')) || [];
         let currentProjectId = null;
         let selectedFile = null;
         let selectedDocument = null;
-
-        // ============================================
-        // FIREBASE FUNCTIONS - PROJECTS
-        // ============================================
-        
-        async function loadProjectsFromFirebase() {
-            if (!isFirebaseReady) {
-                // Fallback to localStorage
-                projects = JSON.parse(localStorage.getItem('projects')) || [];
-                return;
-            }
-
-            try {
-                const snapshot = await db.collection('projects').get();
-                projects = [];
-                snapshot.forEach(doc => {
-                    projects.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                console.log(`✅ Loaded ${projects.length} projects from Firebase`);
-            } catch (error) {
-                console.error('Error loading projects:', error);
-                projects = JSON.parse(localStorage.getItem('projects')) || [];
-            }
-        }
-
-        async function saveProjectToFirebase(project) {
-            if (!isFirebaseReady) {
-                // Fallback to localStorage
-                saveProjects();
-                return;
-            }
-
-            try {
-                if (project.id && typeof project.id === 'string' && project.id.length > 15) {
-                    // Update existing project
-                    await db.collection('projects').doc(project.id).set(project);
-                } else {
-                    // Create new project with auto ID
-                    const docRef = await db.collection('projects').add(project);
-                    project.id = docRef.id;
-                }
-                console.log('✅ Project saved to Firebase:', project.id);
-            } catch (error) {
-                console.error('Error saving project:', error);
-                alert('⚠️ Could not sync to cloud. Changes saved locally.');
-                saveProjects();
-            }
-        }
-
-        async function deleteProjectFromFirebase(projectId) {
-            if (!isFirebaseReady) {
-                projects = projects.filter(p => p.id !== projectId);
-                saveProjects();
-                return;
-            }
-
-            try {
-                await db.collection('projects').doc(projectId).delete();
-                console.log('✅ Project deleted from Firebase:', projectId);
-            } catch (error) {
-                console.error('Error deleting project:', error);
-                alert('⚠️ Could not delete from cloud. Deleted locally.');
-            }
-        }
-
-        // ============================================
-        // FIREBASE FUNCTIONS - REMINDERS
-        // ============================================
-        
-        async function loadRemindersFromFirebase() {
-            if (!isFirebaseReady) {
-                reminders = JSON.parse(localStorage.getItem('reminders')) || [];
-                return;
-            }
-
-            try {
-                const snapshot = await db.collection('reminders').get();
-                reminders = [];
-                snapshot.forEach(doc => {
-                    reminders.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                console.log(`✅ Loaded ${reminders.length} reminders from Firebase`);
-            } catch (error) {
-                console.error('Error loading reminders:', error);
-                reminders = JSON.parse(localStorage.getItem('reminders')) || [];
-            }
-        }
-
-        async function saveReminderToFirebase(reminder) {
-            if (!isFirebaseReady) {
-                saveReminders();
-                return;
-            }
-
-            try {
-                if (reminder.id && typeof reminder.id === 'string' && reminder.id.length > 15) {
-                    await db.collection('reminders').doc(reminder.id).set(reminder);
-                } else {
-                    const docRef = await db.collection('reminders').add(reminder);
-                    reminder.id = docRef.id;
-                }
-                console.log('✅ Reminder saved to Firebase:', reminder.id);
-            } catch (error) {
-                console.error('Error saving reminder:', error);
-                saveReminders();
-            }
-        }
-
-        async function deleteReminderFromFirebase(reminderId) {
-            if (!isFirebaseReady) {
-                reminders = reminders.filter(r => r.id !== reminderId);
-                saveReminders();
-                return;
-            }
-
-            try {
-                await db.collection('reminders').doc(reminderId).delete();
-                console.log('✅ Reminder deleted from Firebase:', reminderId);
-            } catch (error) {
-                console.error('Error deleting reminder:', error);
-            }
-        }
-
-        // ============================================
-        // FALLBACK LOCALSTORAGE FUNCTIONS
-        // ============================================
-        
-        function saveProjects() {
-            localStorage.setItem('projects', JSON.stringify(projects));
-        }
-
-        function saveReminders() {
-            localStorage.setItem('reminders', JSON.stringify(reminders));
-        }
 
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1216,7 +1026,7 @@
             }
         }
 
-        async function addProject() {
+        function addProject() {
             const name = document.getElementById('projectName').value;
             const budget = parseFloat(document.getElementById('projectBudget').value);
             const alertPercentage = parseInt(document.getElementById('alertPercentage').value);
@@ -1227,7 +1037,7 @@
             }
 
             const project = {
-                id: Date.now().toString(),
+                id: Date.now(),
                 name: name,
                 totalBudget: budget,
                 spent: 0,
@@ -1240,13 +1050,13 @@
             };
 
             projects.push(project);
-            await saveProjectToFirebase(project);
+            saveProjects();
             
             document.getElementById('projectName').value = '';
             document.getElementById('projectBudget').value = '';
             
             alert('✅ Project added successfully!');
-            await updateDashboard();
+            updateDashboard();
         }
 
         function saveProjects() {
@@ -1257,9 +1067,7 @@
             localStorage.setItem('reminders', JSON.stringify(reminders));
         }
 
-        async function updateDashboard() {
-            await loadProjectsFromFirebase();
-            
+        function updateDashboard() {
             const activeProjects = projects.filter(p => p.status === 'active').length;
             const totalBudget = projects.reduce((sum, p) => sum + p.totalBudget, 0);
 
@@ -1385,7 +1193,7 @@
             document.getElementById('fileName').textContent = '';
         }
 
-        async function addEmployee() {
+        function addEmployee() {
             const name = document.getElementById('employeeName').value;
 
             if (!name) {
@@ -1393,14 +1201,14 @@
                 return;
             }
 
-            const project = projects.find(p => p.id == currentProjectId);
+            const project = projects.find(p => p.id === currentProjectId);
             project.employees.push({
                 id: Date.now(),
                 name: name,
                 totalPaid: 0
             });
 
-            await saveProjectToFirebase(project);
+            saveProjects();
             updateEmployeeList(project);
             updateSalaryEmployeeSelect(project);
             
@@ -1440,19 +1248,19 @@
             });
         }
 
-        async function removeEmployee(empId) {
+        function removeEmployee(empId) {
             if (!confirm('Are you sure you want to remove this employee?')) return;
             
             const project = projects.find(p => p.id === currentProjectId);
             project.employees = project.employees.filter(e => e.id !== empId);
-            await saveProjectToFirebase(project);
+            saveProjects();
             updateEmployeeList(project);
             updateSalaryEmployeeSelect(project);
         }
 
-        async function paySalary() {
+        function paySalary() {
             const empId = parseInt(document.getElementById('salaryEmployee').value);
-            const type = document.getElementById('paymentType').value);
+            const type = document.getElementById('paymentType').value;
             const amount = parseFloat(document.getElementById('salaryAmount').value);
             const date = document.getElementById('salaryDate').value;
 
@@ -1476,7 +1284,7 @@
                 date: date
             });
 
-            await saveProjectToFirebase(project);
+            saveProjects();
             
             document.getElementById('salaryAmount').value = '';
             
@@ -1492,7 +1300,7 @@
             }
         }
 
-        async function addExpense() {
+        function addExpense() {
             const desc = document.getElementById('expenseDesc').value;
             const amount = parseFloat(document.getElementById('expenseAmount').value);
             const date = document.getElementById('expenseDate').value;
@@ -1515,11 +1323,11 @@
             // Store file in localStorage as base64
             if (selectedFile) {
                 const reader = new FileReader();
-                reader.onload = async function(e) {
+                reader.onload = function(e) {
                     expense.attachment = e.target.result;
                     project.expenses.push(expense);
                     project.spent += amount;
-                    await saveProjectToFirebase(project);
+                    saveProjects();
                     
                     document.getElementById('expenseDesc').value = '';
                     document.getElementById('expenseAmount').value = '';
@@ -1533,7 +1341,7 @@
             } else {
                 project.expenses.push(expense);
                 project.spent += amount;
-                await saveProjectToFirebase(project);
+                saveProjects();
                 
                 document.getElementById('expenseDesc').value = '';
                 document.getElementById('expenseAmount').value = '';
@@ -1594,7 +1402,7 @@
             }
         }
 
-        async function deleteExpense(expenseId) {
+        function deleteExpense(expenseId) {
             if (!confirm('Is expense ko delete karna hai? Yeh action undo nahi ho sakta!')) return;
             
             const project = projects.find(p => p.id === currentProjectId);
@@ -1607,7 +1415,7 @@
                 // Remove the expense
                 project.expenses = project.expenses.filter(e => e.id !== expenseId);
                 
-                await saveProjectToFirebase(project);
+                saveProjects();
                 alert('✅ Expense deleted successfully!');
                 openProjectModal(currentProjectId);
             }
@@ -1664,16 +1472,16 @@
             list.appendChild(totalDiv);
         }
 
-        async function markComplete() {
+        function markComplete() {
             if (!confirm('Mark this project as completed?')) return;
             
             const project = projects.find(p => p.id === currentProjectId);
             project.status = 'completed';
-            await saveProjectToFirebase(project);
+            saveProjects();
             
             alert('✅ Project marked as completed!');
             closeModal();
-            await updateDashboard();
+            updateDashboard();
         }
 
         function exportData() {
@@ -1723,19 +1531,19 @@
             alert('📥 Data exported successfully!');
         }
 
-        async function deleteProject() {
+        function deleteProject() {
             if (!confirm('Are you sure you want to delete this project? This cannot be undone!')) return;
             
-            await deleteProjectFromFirebase(currentProjectId);
             projects = projects.filter(p => p.id !== currentProjectId);
+            saveProjects();
             
             alert('🗑️ Project deleted successfully!');
             closeModal();
-            await updateDashboard();
+            updateDashboard();
         }
 
-        async function addReminder() {
-            const projectId = document.getElementById('reminderProject').value;
+        function addReminder() {
+            const projectId = parseInt(document.getElementById('reminderProject').value);
             const name = document.getElementById('reminderName').value;
             const amount = parseFloat(document.getElementById('reminderAmount').value);
             const date = document.getElementById('reminderDate').value;
@@ -1745,10 +1553,10 @@
                 return;
             }
 
-            const project = projects.find(p => p.id == projectId);
+            const project = projects.find(p => p.id === projectId);
 
             const reminder = {
-                id: Date.now().toString(),
+                id: Date.now(),
                 projectId: projectId,
                 projectName: project.name,
                 name: name,
@@ -1759,14 +1567,14 @@
             };
 
             reminders.push(reminder);
-            await saveReminderToFirebase(reminder);
+            saveReminders();
             
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderAmount').value = '';
             document.getElementById('reminderDate').value = '';
             
             alert('✅ Reminder set successfully!');
-            await updateRemindersList();
+            updateRemindersList();
         }
 
         function updateReminderProjectSelect() {
@@ -1781,9 +1589,7 @@
             });
         }
 
-        async function updateRemindersList() {
-            await loadRemindersFromFirebase();
-            
+        function updateRemindersList() {
             const list = document.getElementById('remindersList');
             list.innerHTML = '';
 
@@ -1837,45 +1643,43 @@
             });
         }
 
-        async function markReceived(reminderId) {
-            const reminder = reminders.find(r => r.id == reminderId);
+        function markReceived(reminderId) {
+            const reminder = reminders.find(r => r.id === reminderId);
             
             if (confirm(`Confirm: Rs. ${reminder.amount.toLocaleString()} received from ${reminder.name}?`)) {
                 reminder.received = true;
                 reminder.receivedDate = new Date().toISOString();
                 
-                // Update reminder in Firebase
-                await saveReminderToFirebase(reminder);
-                
                 // Add to project's received payments array (not to budget)
-                const project = projects.find(p => p.id == reminder.projectId);
+                const project = projects.find(p => p.id === reminder.projectId);
                 if (project) {
                     if (!project.receivedPayments) {
                         project.receivedPayments = [];
                     }
                     project.receivedPayments.push({
-                        id: Date.now().toString(),
+                        id: Date.now(),
                         reminderId: reminder.id,
                         name: reminder.name,
                         amount: reminder.amount,
                         receivedDate: reminder.receivedDate,
                         originalDueDate: reminder.dueDate
                     });
-                    await saveProjectToFirebase(project);
+                    saveProjects();
                 }
                 
+                saveReminders();
                 alert('✅ Payment marked as received!');
-                await updateRemindersList();
-                await updateDashboard();
+                updateRemindersList();
+                updateDashboard();
             }
         }
 
-        async function deleteReminder(reminderId) {
+        function deleteReminder(reminderId) {
             if (!confirm('Delete this reminder?')) return;
             
-            await deleteReminderFromFirebase(reminderId);
             reminders = reminders.filter(r => r.id !== reminderId);
-            await updateRemindersList();
+            saveReminders();
+            updateRemindersList();
         }
 
         // Document Management Functions
@@ -1922,14 +1726,14 @@
                 return;
             }
 
-            const project = projects.find(p => p.id == projectId);
+            const project = projects.find(p => p.id === projectId);
 
             if (!project.documents) {
                 project.documents = [];
             }
 
             const reader = new FileReader();
-            reader.onload = async function(e) {
+            reader.onload = function(e) {
                 const document = {
                     id: Date.now(),
                     title: title,
@@ -1942,7 +1746,7 @@
                 };
 
                 project.documents.push(document);
-                await saveProjectToFirebase(project);
+                saveProjects();
 
                 // Reset form
                 document.getElementById('docTitle').value = '';
@@ -2057,43 +1861,35 @@
             }
         }
 
-        async function deleteDocument(projectId, docId) {
+        function deleteDocument(projectId, docId) {
             if (!confirm('Delete this document? This cannot be undone!')) return;
 
-            const project = projects.find(p => p.id == projectId);
+            const project = projects.find(p => p.id === projectId);
             project.documents = project.documents.filter(d => d.id !== docId);
-            await saveProjectToFirebase(project);
+            saveProjects();
 
             alert('✅ Document deleted successfully!');
             updateDocumentsList();
         }
 
-        // Initialize - Load data from Firebase
-        async function initializeApp() {
-            await loadProjectsFromFirebase();
-            await loadRemindersFromFirebase();
-            await updateDashboard();
-            
-            // Check for pending reminders on load
-            setTimeout(async () => {
-                await loadRemindersFromFirebase();
-                const pendingReminders = reminders.filter(r => !r.received);
-                if (pendingReminders.length > 0) {
-                    const today = new Date();
-                    const overdueCount = pendingReminders.filter(r => {
-                        const dueDate = new Date(r.dueDate);
-                        return today > dueDate;
-                    }).length;
-
-                    if (overdueCount > 0) {
-                        alert(`⚠️ You have ${overdueCount} overdue payment reminder(s)!\n\nCheck the Reminders tab.`);
-                    }
-                }
-            }, 2000);
-        }
+        // Initialize
+        updateDashboard();
         
-        // Start the app
-        initializeApp();
+        // Check for pending reminders on load
+        setTimeout(() => {
+            const pendingReminders = reminders.filter(r => !r.received);
+            if (pendingReminders.length > 0) {
+                const today = new Date();
+                const overdueCount = pendingReminders.filter(r => {
+                    const dueDate = new Date(r.dueDate);
+                    return today > dueDate;
+                }).length;
+
+                if (overdueCount > 0) {
+                    alert(`⚠️ You have ${overdueCount} overdue payment reminder(s)!\n\nCheck the Reminders tab.`);
+                }
+            }
+        }, 1000);
     </script>
 </body>
 </html>
