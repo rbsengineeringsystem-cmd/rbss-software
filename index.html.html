@@ -830,13 +830,6 @@
                     <label>Due Date</label>
                     <input type="date" id="reminderDate">
                 </div>
-                <div class="form-group">
-                    <label>Your WhatsApp Number (for daily reminders)</label>
-                    <input type="tel" id="whatsappNumber" placeholder="+92 300 1234567" pattern="[0-9+\s-]*">
-                    <small style="color: var(--text-secondary); display: block; margin-top: 5px;">
-                        📱 Daily reminder message prepare hoga jo aap WhatsApp par share kar sakte hain
-                    </small>
-                </div>
                 <button class="btn btn-success" onclick="addReminder()">🔔 Set Reminder</button>
             </div>
         </div>
@@ -1015,7 +1008,6 @@
         let currentProjectId = null;
         let selectedFile = null;
         let selectedDocument = null;
-        let whatsappNumber = localStorage.getItem('whatsappNumber') || '';
 
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1555,7 +1547,6 @@
             const name = document.getElementById('reminderName').value;
             const amount = parseFloat(document.getElementById('reminderAmount').value);
             const date = document.getElementById('reminderDate').value;
-            const whatsapp = document.getElementById('whatsappNumber').value;
 
             if (!projectId || !name || !amount || !date) {
                 alert('Please fill all required fields!');
@@ -1571,7 +1562,6 @@
                 name: name,
                 amount: amount,
                 dueDate: date,
-                whatsappNumber: whatsapp,
                 received: false,
                 createdDate: new Date().toISOString()
             };
@@ -1579,23 +1569,12 @@
             reminders.push(reminder);
             saveReminders();
             
-            // Save WhatsApp number for future use
-            if (whatsapp) {
-                localStorage.setItem('whatsappNumber', whatsapp);
-                whatsappNumber = whatsapp;
-            }
-            
             document.getElementById('reminderName').value = '';
             document.getElementById('reminderAmount').value = '';
             document.getElementById('reminderDate').value = '';
             
             alert('✅ Reminder set successfully!');
             updateRemindersList();
-            showDailyReminderInstructions();
-        }
-
-        function showDailyReminderInstructions() {
-            alert(`📱 Daily Reminder Setup:\n\nHar din reminder list mein "Send WhatsApp Reminder" button dikhega.\n\nClick karne par ready message mil jayega jo aap WhatsApp par send kar sakte hain!`);
         }
 
         function updateReminderProjectSelect() {
@@ -1652,9 +1631,6 @@
                     </div>
                     <div class="alert ${statusClass}" style="margin: 10px 0; padding: 10px;">${statusText}</div>
                     <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
-                        <button class="btn btn-primary" style="flex: 1; padding: 10px; min-width: 150px;" onclick="sendWhatsAppReminder(${reminder.id})">
-                            📱 Send WhatsApp
-                        </button>
                         <button class="btn btn-success" style="flex: 1; padding: 10px; min-width: 150px;" onclick="markReceived(${reminder.id})">
                             ✓ Payment Received
                         </button>
@@ -1664,43 +1640,6 @@
                     </div>
                 `;
                 list.appendChild(div);
-            });
-        }
-
-        function sendWhatsAppReminder(reminderId) {
-            const reminder = reminders.find(r => r.id === reminderId);
-            const dueDate = new Date(reminder.dueDate);
-            const today = new Date();
-            const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
-            
-            let message = `🔔 *Payment Reminder*\n\n`;
-            message += `📋 Project: ${reminder.projectName}\n`;
-            message += `👤 From: ${reminder.name}\n`;
-            message += `💰 Amount: Rs. ${reminder.amount.toLocaleString()}\n`;
-            message += `📅 Due Date: ${dueDate.toLocaleDateString('ur-PK')}\n\n`;
-            
-            if (daysOverdue > 0) {
-                message += `⚠️ This payment is *${daysOverdue} days overdue*\n\n`;
-            } else if (daysOverdue === 0) {
-                message += `⏰ This payment is *due today*\n\n`;
-            } else {
-                message += `📌 ${Math.abs(daysOverdue)} days remaining\n\n`;
-            }
-            
-            message += `Kindly process the payment at your earliest convenience.\n\nThank you!`;
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(message).then(() => {
-                alert('✅ Message copied to clipboard!\n\nAb WhatsApp open karein aur paste kar ke send karein.');
-                
-                // Open WhatsApp (if number is provided)
-                if (reminder.whatsappNumber) {
-                    const whatsappUrl = `https://wa.me/${reminder.whatsappNumber.replace(/\s/g, '')}?text=${encodeURIComponent(message)}`;
-                    window.open(whatsappUrl, '_blank');
-                }
-            }).catch(() => {
-                // Fallback - show message in alert
-                alert(message);
             });
         }
 
@@ -1754,11 +1693,6 @@
                 option.textContent = project.name;
                 select.appendChild(option);
             });
-
-            // Load saved WhatsApp number
-            if (whatsappNumber) {
-                document.getElementById('whatsappNumber').value = whatsappNumber;
-            }
         }
 
         function loadProjectDocuments() {
