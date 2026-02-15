@@ -1027,8 +1027,8 @@
         };
 
         // Initialize Firebase
-        let db = null;
-        let isFirebaseReady = false;
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
 
         try {
             firebase.initializeApp(firebaseConfig);
