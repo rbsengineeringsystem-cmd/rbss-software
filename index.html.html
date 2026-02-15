@@ -1019,16 +1019,16 @@
         
         const firebaseConfig = {
             apiKey: "AIzaSyB4IiJifc2_y_xT9S7je8GtR0hoCmY62J0",
-            authDomain: "rbss-software.firebaseapp.com",
+            authDomain: "Yrbss-software.firebaseapp.com",
             projectId: "rbss-software",
             storageBucket: "rbss-software.firebasestorage.app",
-            messagingSenderId: "428309060199",
-            appId: ":428309060199:web:926fad4ce25f090c07d2c2"
+            messagingSenderId: "Y428309060199",
+            appId: "1:428309060199:web:926fad4ce25f090c07d2c2"
         };
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
+        let db = null;
+        let isFirebaseReady = false;
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -1089,7 +1089,7 @@
         async function saveProjectToFirebase(project) {
             if (!isFirebaseReady) {
                 // Fallback to localStorage
-                await saveProjectToFirebase(project);
+                saveProjects();
                 return;
             }
 
@@ -1106,14 +1106,14 @@
             } catch (error) {
                 console.error('Error saving project:', error);
                 alert('⚠️ Could not sync to cloud. Changes saved locally.');
-                await saveProjectToFirebase(project);
+                saveProjects();
             }
         }
 
         async function deleteProjectFromFirebase(projectId) {
             if (!isFirebaseReady) {
                 projects = projects.filter(p => p.id !== projectId);
-                await saveProjectToFirebase(project);
+                saveProjects();
                 return;
             }
 
@@ -1440,7 +1440,7 @@
             });
         }
 
-        function removeEmployee(empId) {
+        async function removeEmployee(empId) {
             if (!confirm('Are you sure you want to remove this employee?')) return;
             
             const project = projects.find(p => p.id === currentProjectId);
@@ -1450,9 +1450,9 @@
             updateSalaryEmployeeSelect(project);
         }
 
-        function paySalary() {
+        async function paySalary() {
             const empId = parseInt(document.getElementById('salaryEmployee').value);
-            const type = document.getElementById('paymentType').value;
+            const type = document.getElementById('paymentType').value);
             const amount = parseFloat(document.getElementById('salaryAmount').value);
             const date = document.getElementById('salaryDate').value;
 
@@ -1492,7 +1492,7 @@
             }
         }
 
-        function addExpense() {
+        async function addExpense() {
             const desc = document.getElementById('expenseDesc').value;
             const amount = parseFloat(document.getElementById('expenseAmount').value);
             const date = document.getElementById('expenseDate').value;
@@ -1515,7 +1515,7 @@
             // Store file in localStorage as base64
             if (selectedFile) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = async function(e) {
                     expense.attachment = e.target.result;
                     project.expenses.push(expense);
                     project.spent += amount;
@@ -1594,7 +1594,7 @@
             }
         }
 
-        function deleteExpense(expenseId) {
+        async function deleteExpense(expenseId) {
             if (!confirm('Is expense ko delete karna hai? Yeh action undo nahi ho sakta!')) return;
             
             const project = projects.find(p => p.id === currentProjectId);
@@ -1664,7 +1664,7 @@
             list.appendChild(totalDiv);
         }
 
-        function markComplete() {
+        async function markComplete() {
             if (!confirm('Mark this project as completed?')) return;
             
             const project = projects.find(p => p.id === currentProjectId);
@@ -1673,7 +1673,7 @@
             
             alert('✅ Project marked as completed!');
             closeModal();
-            updateDashboard();
+            await updateDashboard();
         }
 
         function exportData() {
@@ -1922,14 +1922,14 @@
                 return;
             }
 
-            const project = projects.find(p => p.id === projectId);
+            const project = projects.find(p => p.id == projectId);
 
             if (!project.documents) {
                 project.documents = [];
             }
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const document = {
                     id: Date.now(),
                     title: title,
@@ -2057,10 +2057,10 @@
             }
         }
 
-        function deleteDocument(projectId, docId) {
+        async function deleteDocument(projectId, docId) {
             if (!confirm('Delete this document? This cannot be undone!')) return;
 
-            const project = projects.find(p => p.id === projectId);
+            const project = projects.find(p => p.id == projectId);
             project.documents = project.documents.filter(d => d.id !== docId);
             await saveProjectToFirebase(project);
 
